@@ -59,6 +59,7 @@
 pub mod pki_rpk;
 #[cfg(feature = "dtls-psk")]
 pub mod psk;
+mod oscore;
 
 use std::fmt::Debug;
 

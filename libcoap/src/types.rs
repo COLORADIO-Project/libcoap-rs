@@ -38,6 +38,7 @@ use libcoap_sys::{
         COAP_URI_SCHEME_HTTP, COAP_URI_SCHEME_HTTPS,
     },
     coap_uri_t, COAP_URI_SCHEME_SECURE_MASK,
+    coap_oscore_conf_t,
 };
 
 use crate::context::ensure_coap_started;
@@ -51,6 +52,16 @@ pub type IfIndex = c_int;
 pub type MaxRetransmit = c_ushort;
 /// Identifier for a CoAP message.
 pub type CoapMessageId = coap_mid_t;
+
+// Internal wrapper for the raw coap_oscore_conf_t type.
+pub(crate) struct OscoreConf(coap_oscore_conf_t);
+
+impl OscoreConf {
+    pub(crate) unsafe fn as_mut_raw_conf(&mut self) -> &mut coap_oscore_conf_t {
+        &mut self.0
+    }
+}
+
 
 /// Internal wrapper for the raw coap_address_t type, mainly used for conversion between types.
 pub(crate) struct CoapAddress(coap_address_t);
@@ -892,6 +903,16 @@ impl CoapProtocol {
             CoapProtocol::Dtls | CoapProtocol::Tls => true,
         }
     }
+    pub(crate) fn as_raw_protocol(self) -> coap_proto_t {
+        match self {
+            CoapProtocol::None => coap_proto_t::COAP_PROTO_NONE,
+            CoapProtocol::Udp => coap_proto_t::COAP_PROTO_UDP,
+            CoapProtocol::Tcp => coap_proto_t::COAP_PROTO_TCP,
+            CoapProtocol::Dtls => coap_proto_t::COAP_PROTO_DTLS,
+            CoapProtocol::Tls => coap_proto_t::COAP_PROTO_TLS,
+        }
+    }
+
 }
 
 #[doc(hidden)]
