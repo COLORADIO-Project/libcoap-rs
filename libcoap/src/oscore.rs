@@ -55,10 +55,7 @@ impl OscoreConf {
             s: oscore_conf_file.as_ptr(),
         };
 
-        let seq_initial = match OscoreConf::read_initial_sequence_number() {
-            Some(num) => num,
-            None => seq_initial,
-        };
+        let seq_initial = OscoreConf::read_initial_sequence_number().unwrap_or_else(|| seq_initial);
 
         // TODO: SECURITY
         let oscore_conf = unsafe { coap_new_oscore_conf(conf, Some(save_seq_num), ptr::null_mut(), seq_initial) };
