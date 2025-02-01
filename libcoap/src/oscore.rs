@@ -10,28 +10,35 @@ use std::{
 static OSCORE_SEQ_SAFE_FILE_PATH: &str = "oscore.seq";
 
 extern "C" fn save_seq_num(seq_num: u64, _param: *mut c_void) -> i32 {
-    let mut oscore_seq_safe_file = match OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(OSCORE_SEQ_SAFE_FILE_PATH)
-    {
-        Ok(file) => file,
-        Err(_) => return 0,
-    };
 
-    // TODO: refactor this
-    if let Err(_) = writeln!(oscore_seq_safe_file, "{}\n", seq_num) {
-        return 0;
+    let temp_path = format!("{}.tmp", OSCORE_SEQ_SAFE_FILE_PATH);
+
+    let result: Result<(), std::io::Error> = (|| {
+        let mut temp_file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&temp_path)?;
+
+        writeln!(temp_file, "{}", seq_num)?;
+        temp_file.sync_all()?;
+
+        fs::rename(&temp_path, OSCORE_SEQ_SAFE_FILE_PATH)?;
+        Ok(())
+    })();
+
+    match result {
+        Ok(_) => {
+            #[cfg(debug_assertions)]
+            println!("DEBUG: Saved sequence number: {}", seq_num);
+            1
+        }
+        Err(err) => {
+            eprintln!("Failed to save sequence number: {}", err);
+            0
+        }
     }
-    if let Err(_) = oscore_seq_safe_file.flush() {
-        return 0;
-    }
 
-    // TODO: remove debug
-    println!("DEBUG: Saving sequence number: {}", seq_num);
-
-    1
 }
 
 // Represents a oscore conf object which stores the underlying
