@@ -23,7 +23,7 @@ mod common;
 pub fn basic_client_server_request() {
     let server_address = common::get_unused_server_addr();
 
-    let server_handle = common::spawn_test_server(move |mut context| {
+    let server_handle = common::spawn_test_server(move |mut context, _request_complete| {
         context.add_endpoint_udp(server_address).unwrap();
         context
     });
@@ -38,7 +38,9 @@ pub fn basic_client_server_request() {
         for response in session.poll_handle(&req_handle) {
             assert_eq!(response.code(), CoapMessageCode::Response(CoapResponseCode::Content));
             assert_eq!(response.data().unwrap().as_ref(), "Hello World!".as_bytes());
-            server_handle.join().unwrap();
+            if let Err(e) = server_handle.join() {
+                std::panic::resume_unwind(e);
+            }
             return;
         }
     }

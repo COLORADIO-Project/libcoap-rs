@@ -27,7 +27,7 @@ pub fn dtls_psk_client_server_request() {
     let dummy_key = PskKey::new(Some("dtls_test_id"), "dtls_test_key___");
     let client_psk_context = ClientPskContextBuilder::new(dummy_key.clone()).build();
 
-    let server_handle = common::spawn_test_server(move |mut context| {
+    let server_handle = common::spawn_test_server(move |mut context, _req_complete| {
         let server_psk_context = ServerPskContextBuilder::new(dummy_key.clone()).build();
         context.set_psk_context(server_psk_context).unwrap();
         context.add_endpoint_dtls(server_address).unwrap();
@@ -44,7 +44,9 @@ pub fn dtls_psk_client_server_request() {
         for response in session.poll_handle(&req_handle) {
             assert_eq!(response.code(), CoapMessageCode::Response(CoapResponseCode::Content));
             assert_eq!(response.data().unwrap().as_ref(), "Hello World!".as_bytes());
-            server_handle.join().expect("Test server crashed with failure.");
+            if let Err(e) = server_handle.join() {
+                std::panic::resume_unwind(e);
+            }
             return;
         }
     }

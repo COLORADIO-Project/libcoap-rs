@@ -62,7 +62,7 @@ pub fn dtls_client_server_request_common<KTY: KeyType, FC, FS>(
 
     let server_address = common::get_unused_server_addr();
     let client_crypto_ctx = client_ctx_setup(PkiRpkContextBuilder::<'static, KTY, NonCertVerifying>::new(client_key));
-    let server_handle = common::spawn_test_server(move |mut context: CoapContext| {
+    let server_handle = common::spawn_test_server(move |mut context: CoapContext, _request_complete| {
         let server_crypto_ctx =
             server_ctx_setup(PkiRpkContextBuilder::<'static, KTY, NonCertVerifying>::new(server_key));
         context.set_pki_rpk_context(server_crypto_ctx).unwrap();
@@ -84,7 +84,9 @@ pub fn dtls_client_server_request_common<KTY: KeyType, FC, FS>(
         for response in session.poll_handle(&req_handle) {
             assert_eq!(response.code(), CoapMessageCode::Response(CoapResponseCode::Content));
             assert_eq!(response.data().unwrap().as_ref(), "Hello World!".as_bytes());
-            server_handle.join().expect("Test server crashed with failure.");
+            if let Err(e) = server_handle.join() {
+                std::panic::resume_unwind(e);
+            }
             return;
         }
     }
